@@ -14,7 +14,7 @@ type par struct {
 	outs        chan output
 }
 
-func NewPar(parallelism int) par {
+func NewParSeq(parallelism int) par {
 	return par{
 		Input:  make(chan Processable, parallelism),
 		Output: make(chan interface{}),
