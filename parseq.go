@@ -3,7 +3,7 @@ package parseq
 import "sync"
 
 type par struct {
-	Input  chan Processable
+	Input  chan interface{}
 	Output chan interface{}
 
 	parallelism int
@@ -12,16 +12,18 @@ type par struct {
 	l           sync.Mutex
 	work        chan input
 	outs        chan output
+	process     func(interface{}) interface{}
 }
 
-func NewParSeq(parallelism int) par {
+func NewParSeq(parallelism int, process func(interface{}) interface{}) par {
 	return par{
-		Input:  make(chan Processable, parallelism),
+		Input:  make(chan interface{}, parallelism),
 		Output: make(chan interface{}),
 
 		parallelism: parallelism,
 		work:        make(chan input, parallelism),
 		outs:        make(chan output, parallelism),
+		process:     process,
 	}
 }
 
@@ -46,7 +48,7 @@ func (p *par) readRequests() {
 
 func (p *par) processRequests() {
 	for r := range p.work {
-		p.outs <- output{order: r.order, product: r.request.Process()}
+		p.outs <- output{order: r.order, product: p.process(r.request)}
 	}
 }
 
@@ -69,12 +71,8 @@ func (p *par) orderResults() {
 	}
 }
 
-type Processable interface {
-	Process() interface{}
-}
-
 type input struct {
-	request Processable
+	request interface{}
 	order   int64
 }
 
