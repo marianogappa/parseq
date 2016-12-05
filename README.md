@@ -1,5 +1,15 @@
-### Readme coming soon, you can use it like this:
-(note how even though messages take 5s to process, output comes out every second, and it comes out ordered)
+# ParSeq
+
+Parallel processing with sequential output (respecting order of input).
+
+## Should I use this?
+
+Probably not! Don't be clever. Only use it if:
+1) the rate of input is higher than the rate of output on the system (i.e. it queues up)
+2) the processing of input can be parallelised, and overall throughput increases by doing so
+3) the order of output of the system needs to respect order of input
+
+## Usage
 
 ```
 package main
@@ -12,31 +22,27 @@ import (
 )
 
 func main() {
-	p := parseq.NewParSeq(5)
-	go p.Run()
+	p := parseq.New(5, process)			// 5 goroutines using the process function
 
-	go makeRequests(p.Input, 1*time.Second)
+	go p.Start()
+	go makeRequests(p)
 
-	for out := range p.Output {
-		tp := out.(testProduct)
-		fmt.Print(tp.ord, "-")
+	for out := range p.Output {			// after initial 1s, requests output every ~200ms
+		fmt.Print(out.(int), ".")		// and output respects input order
 	}
 }
 
-func makeRequests(ins chan parseq.Processable, requestEvery time.Duration) {
-	counter := int64(665)
+func makeRequests(p parseq.ParSeq) {
+	counter := 666
 	for {
+		p.Input <- counter			// this simulates an incoming request
+		time.Sleep(200 * time.Millisecond)	// requests come every 200ms
 		counter++
-		ins <- testRequest{counter}
-		time.Sleep(requestEvery)
 	}
 }
 
-type testRequest struct{ ord int64 }
-type testProduct struct{ ord int64 }
-
-func (r testRequest) Process() interface{} {
-	time.Sleep(5 * time.Second)
-	return testProduct{r.ord}
+func process(value interface{}) interface{} {
+	time.Sleep(1 * time.Second)			// processing a request takes 1s
+	return value
 }
 ```
