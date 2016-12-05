@@ -5,9 +5,10 @@ Parallel processing with sequential output (respecting order of input).
 ## Should I use this?
 
 Probably not! Don't be clever. Only use it if:
-1) the rate of input is higher than the rate of output on the system (i.e. it queues up)
-2) the processing of input can be parallelised, and overall throughput increases by doing so
-3) the order of output of the system needs to respect order of input
+
+1. the rate of input is higher than the rate of output on the system (i.e. it queues up)
+2. the processing of input can be parallelised, and overall throughput increases by doing so
+3. the order of output of the system needs to respect order of input
 
 ## Usage
 
