@@ -36,6 +36,13 @@ func (p *par) Run() {
 	}
 }
 
+func (p *par) Close() {
+	close(p.Input)
+	close(p.Output)
+	close(p.work)
+	close(p.outs)
+}
+
 func (p *par) readRequests() {
 	for r := range p.Input {
 		p.order++
