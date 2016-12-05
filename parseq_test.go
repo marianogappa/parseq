@@ -10,7 +10,7 @@ import (
 )
 
 func TestOutperformsSequential(t *testing.T) {
-	p := parseq.NewParSeq(5, processAfter(50*time.Millisecond))
+	p := parseq.New(5, processAfter(50*time.Millisecond))
 
 	go p.Start()
 	go func() {
@@ -43,7 +43,7 @@ func TestOutperformsSequential(t *testing.T) {
 
 func TestOrderedOutput(t *testing.T) {
 	r := rand.New(rand.NewSource(99))
-	p := parseq.NewParSeq(5, processAfterRandom(r))
+	p := parseq.New(5, processAfterRandom(r))
 
 	go p.Start()
 	go func() {

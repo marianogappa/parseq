@@ -15,7 +15,7 @@ type ParSeq struct {
 	process     func(interface{}) interface{}
 }
 
-func NewParSeq(parallelism int, process func(interface{}) interface{}) ParSeq {
+func New(parallelism int, process func(interface{}) interface{}) ParSeq {
 	return ParSeq{
 		Input:  make(chan interface{}, parallelism),
 		Output: make(chan interface{}),
