@@ -1,9 +1,16 @@
+// The parseq package provides a simple interface for processing a stream in parallel,
+// with configurable level of parallelism, while still outputting a sequential stream
+// that respects the order of input.
 package parseq
 
 import "sync"
 
 type ParSeq struct {
-	Input  chan interface{}
+	// Input is the channel the client code should send to.
+	Input chan interface{}
+
+	// Output is the channel the client code should recieve from. Output order respects
+	// input order. Output is usually casted to a more useful type.
 	Output chan interface{}
 
 	parallelism int
@@ -15,6 +22,10 @@ type ParSeq struct {
 	process     func(interface{}) interface{}
 }
 
+// New returns a new ParSeq. Processing doesn't begin until the Start method is called.
+// ParSeq is concurrency-safe; multiple ParSeqs can run in parallel.
+// `parallelism` determines how many goroutines read from the Input channel, and each
+// of the goroutines uses the `process` function to process the inputs.
 func New(parallelism int, process func(interface{}) interface{}) ParSeq {
 	return ParSeq{
 		Input:  make(chan interface{}, parallelism),
@@ -27,6 +38,9 @@ func New(parallelism int, process func(interface{}) interface{}) ParSeq {
 	}
 }
 
+// Start begins consuming the Input channel and producing to the Output channel.
+// It starts n+2 goroutines, n being the level of parallelism, so Close should be
+// called to exit the goroutines after processing has finished.
 func (p *ParSeq) Start() {
 	go p.readRequests()
 	go p.orderResults()
@@ -36,6 +50,8 @@ func (p *ParSeq) Start() {
 	}
 }
 
+// Closes all channels created by Start(). This ParSeq cannot be used after calling
+// Close(). You must not send to the Input channel after calling Close().
 func (p *ParSeq) Close() {
 	close(p.Input)
 	close(p.Output)
