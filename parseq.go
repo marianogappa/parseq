@@ -2,7 +2,7 @@ package parseq
 
 import "sync"
 
-type par struct {
+type Par struct {
 	Input  chan interface{}
 	Output chan interface{}
 
@@ -15,8 +15,8 @@ type par struct {
 	process     func(interface{}) interface{}
 }
 
-func NewParSeq(parallelism int, process func(interface{}) interface{}) par {
-	return par{
+func NewParSeq(parallelism int, process func(interface{}) interface{}) Par {
+	return Par{
 		Input:  make(chan interface{}, parallelism),
 		Output: make(chan interface{}),
 
@@ -27,7 +27,7 @@ func NewParSeq(parallelism int, process func(interface{}) interface{}) par {
 	}
 }
 
-func (p *par) Run() {
+func (p *Par) Run() {
 	go p.readRequests()
 	go p.orderResults()
 
@@ -36,14 +36,14 @@ func (p *par) Run() {
 	}
 }
 
-func (p *par) Close() {
+func (p *Par) Close() {
 	close(p.Input)
 	close(p.Output)
 	close(p.work)
 	close(p.outs)
 }
 
-func (p *par) readRequests() {
+func (p *Par) readRequests() {
 	for r := range p.Input {
 		p.order++
 		p.l.Lock()
@@ -53,13 +53,13 @@ func (p *par) readRequests() {
 	}
 }
 
-func (p *par) processRequests() {
+func (p *Par) processRequests() {
 	for r := range p.work {
 		p.outs <- output{order: r.order, product: p.process(r.request)}
 	}
 }
 
-func (p *par) orderResults() {
+func (p *Par) orderResults() {
 	rtBuf := make(map[int64]interface{})
 	for pr := range p.outs {
 		rtBuf[pr.order] = pr.product
