@@ -60,18 +60,18 @@ func (p *par) processRequests() {
 }
 
 func (p *par) orderResults() {
-	rtBuf := make(map[int64]bool)
+	rtBuf := make(map[int64]interface{})
 	for pr := range p.outs {
-		rtBuf[pr.order] = true
+		rtBuf[pr.order] = pr.product
 	loop:
 		if len(p.unresolved) > 0 {
 			u := p.unresolved[0]
-			if rtBuf[u] {
-				delete(rtBuf, u)
+			if rtBuf[u] != nil {
 				p.l.Lock()
 				p.unresolved = p.unresolved[1:]
 				p.l.Unlock()
-				p.Output <- pr.product
+				p.Output <- rtBuf[u]
+				delete(rtBuf, u)
 				goto loop
 			}
 		}
