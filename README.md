@@ -1,6 +1,8 @@
 # ParSeq
 
-Parallel processing with sequential output (respecting order of input).
+The parseq package provides a simple interface for processing a stream in parallel,
+with configurable level of parallelism, while still outputting a sequential stream
+that respects the order of input.
 
 ## Should I use this?
 
