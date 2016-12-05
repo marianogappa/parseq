@@ -12,7 +12,7 @@ import (
 func TestOutperformsSequential(t *testing.T) {
 	p := parseq.NewParSeq(5, processAfter(50*time.Millisecond))
 
-	go p.Run()
+	go p.Start()
 	go func() {
 		p.Input <- 666
 		time.Sleep(10 * time.Millisecond)
@@ -45,7 +45,7 @@ func TestOrderedOutput(t *testing.T) {
 	r := rand.New(rand.NewSource(99))
 	p := parseq.NewParSeq(5, processAfterRandom(r))
 
-	go p.Run()
+	go p.Start()
 	go func() {
 		p.Input <- 666
 		time.Sleep(10 * time.Millisecond)

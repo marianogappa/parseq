@@ -27,7 +27,7 @@ func NewParSeq(parallelism int, process func(interface{}) interface{}) Par {
 	}
 }
 
-func (p *Par) Run() {
+func (p *Par) Start() {
 	go p.readRequests()
 	go p.orderResults()
 
