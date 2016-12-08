@@ -4,6 +4,39 @@ The parseq package provides a simple interface for processing a stream in parall
 with configurable level of parallelism, while still outputting a sequential stream
 that respects the order of input.
 
+## WAT?
+
+In 99% of the cases, you read messages from a channel and process them sequentially. This is fine. Note that if the channel is unbuffered, your goroutine blocks the next message for the length of the time it takes to process each message. If processing is a lengthy operation, it doesn't matter if the channel is buffered or not, except for the initial period.
+
+```
+for msg := range channel {
+	process(msg)
+}
+```
+
+![Sequential](sequential.png)
+
+If this throttling is problematic, you need to parallelise. When you parallelise, results can come out of order. This can be a problem (or not):
+
+```
+outputChannel := make(chan product)
+workers := make(chan request, 3)
+
+for i := 1; i <= 3; i++ {
+	go newWorker(workers, outputChannel)
+}
+
+for msg := range inputChannel {
+	workers <- msg
+}
+```
+
+![Parallel unordered](parallel_unordered.png)
+
+ParSeq goes just a little further from that model: it saves the order on the input side and holds a buffer on the output side to preserver order:
+
+![Parallel ordered](parallel_ordered.png)
+
 ## Should I use this?
 
 Probably not! Don't be clever. Only use it if:
