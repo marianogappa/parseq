@@ -1,4 +1,5 @@
-# ParSeq ![GoDoc](https://godoc.org/github.com/MarianoGappa/parseq?status.svg)
+# ParSeq [![Build Status](https://img.shields.io/travis/MarianoGappa/parseq.svg)](https://travis-ci.org/MarianoGappa/parseq) ![GoDoc](https://godoc.org/github.com/MarianoGappa/parseq?status.svg) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/MarianoGappa/sd/master/LICENSE)
+
 
 
 The parseq package provides a simple interface for processing a stream in parallel,
