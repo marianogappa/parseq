@@ -1,4 +1,5 @@
-# ParSeq
+# ParSeq ![GoDoc](https://godoc.org/github.com/MarianoGappa/parseq?status.svg)
+
 
 The parseq package provides a simple interface for processing a stream in parallel,
 with configurable level of parallelism, while still outputting a sequential stream
