@@ -1,12 +1,12 @@
-package parseq
+package parseq_test
 
 import (
 	"testing"
 	"time"
 
-	"math/rand"
-
 	"github.com/MarianoGappa/parseq"
+
+	"math/rand"
 )
 
 func TestOutperformsSequential(t *testing.T) {
