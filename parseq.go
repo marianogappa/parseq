@@ -45,18 +45,24 @@ func (p *ParSeq) Start() {
 	go p.readRequests()
 	go p.orderResults()
 
+	var wg sync.WaitGroup
 	for i := 0; i < p.parallelism; i++ {
-		go p.processRequests()
+		wg.Add(1)
+		go p.processRequests(&wg)
 	}
+
+	go func(wg *sync.WaitGroup) {
+		wg.Wait()
+		close(p.outs)
+	}(&wg)
 }
 
-// Closes all channels created by Start(). This ParSeq cannot be used after calling
-// Close(). You must not send to the Input channel after calling Close().
+// Close waits for all queued messages to process, and stops the ParSeq.
+// This ParSeq cannot be used after calling Close(). You must not send
+// to the Input channel after calling Close().
 func (p *ParSeq) Close() {
 	close(p.Input)
-	close(p.Output)
-	close(p.work)
-	close(p.outs)
+	<-p.Output
 }
 
 func (p *ParSeq) readRequests() {
@@ -67,9 +73,12 @@ func (p *ParSeq) readRequests() {
 		p.l.Unlock()
 		p.work <- input{order: p.order, request: r}
 	}
+	close(p.work)
 }
 
-func (p *ParSeq) processRequests() {
+func (p *ParSeq) processRequests(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	for r := range p.work {
 		p.outs <- output{order: r.order, product: p.process(r.request)}
 	}
@@ -92,6 +101,7 @@ func (p *ParSeq) orderResults() {
 			}
 		}
 	}
+	close(p.Output)
 }
 
 type input struct {
