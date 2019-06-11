@@ -59,7 +59,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/MarianoGappa/parseq"
+	"github.com/marianogappa/parseq"
 )
 
 func main() {
