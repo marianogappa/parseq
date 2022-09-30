@@ -59,12 +59,14 @@ func TestOrderedOutput(t *testing.T) {
 		p.Input <- 669
 		time.Sleep(10 * time.Millisecond)
 		p.Input <- 670
+		p.Close()
 	}()
 
 	a := <-p.Output
 	b := <-p.Output
 	c := <-p.Output
 	d := <-p.Output
+	time.Sleep(10 * time.Millisecond)
 	e := <-p.Output
 
 	if a.(int) != 666 ||
@@ -74,8 +76,6 @@ func TestOrderedOutput(t *testing.T) {
 		e.(int) != 670 {
 		t.Error("output came out out of order: ", a, b, c, d, e)
 	}
-
-	p.Close()
 }
 
 func TestCloseNotEatingResult(t *testing.T) {
