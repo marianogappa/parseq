@@ -1,7 +1,6 @@
 package parseq_test
 
 import (
-	"reflect"
 	"runtime"
 	"sort"
 	"sync"
@@ -14,7 +13,12 @@ import (
 )
 
 func TestOutperformsSequential(t *testing.T) {
-	p := parseq.New(5, processAfter(50*time.Millisecond))
+	p, err := parseq.NewWithMapper[int, int](5, &ConstantDelayMapper{
+		delay: 50 * time.Millisecond,
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	go p.Start()
 	go func() {
@@ -35,7 +39,7 @@ func TestOutperformsSequential(t *testing.T) {
 	<-p.Output // min(elapsed)=70ms
 	<-p.Output // min(elapsed)=80ms
 	<-p.Output // min(elapsed)=90ms
-	elapsed := time.Now().Sub(start)
+	elapsed := time.Since(start)
 
 	if elapsed > 150*time.Millisecond { // 150ms for
 		t.Error("test took too long; parallel strategy is ineffective!")
@@ -47,7 +51,12 @@ func TestOutperformsSequential(t *testing.T) {
 
 func TestOrderedOutput(t *testing.T) {
 	r := rand.New(rand.NewSource(99))
-	p := parseq.New(5, processAfterRandom(r))
+	p, err := parseq.NewWithMapper[int, int](5, &RandomDelayMapper{
+		r: r,
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	go p.Start()
 	go func() {
@@ -70,17 +79,22 @@ func TestOrderedOutput(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	e := <-p.Output
 
-	if a.(int) != 666 ||
-		b.(int) != 667 ||
-		c.(int) != 668 ||
-		d.(int) != 669 ||
-		e.(int) != 670 {
+	if a != 666 ||
+		b != 667 ||
+		c != 668 ||
+		d != 669 ||
+		e != 670 {
 		t.Error("output came out out of order: ", a, b, c, d, e)
 	}
 }
 
 func TestCloseNotEatingResult(t *testing.T) {
-	p := parseq.New(5, processAfter(50*time.Millisecond))
+	p, err := parseq.NewWithMapper[int, int](5, &ConstantDelayMapper{
+		delay: 50 * time.Millisecond,
+	})
+	if err != nil {
+		panic(err)
+	}
 	sendTotal := 5
 
 	go p.Start()
@@ -93,13 +107,7 @@ func TestCloseNotEatingResult(t *testing.T) {
 
 	res := make([]int, sendTotal)
 	for i := 0; i < sendTotal-2; i++ {
-		r := <-p.Output
-		if rint, ok := (r).(int); ok {
-			res[i] = rint
-		} else {
-			t.Errorf("received unexpected type %s", reflect.TypeOf(r))
-			return
-		}
+		res[i] = <-p.Output
 	}
 
 	// close first
@@ -107,13 +115,7 @@ func TestCloseNotEatingResult(t *testing.T) {
 
 	// then try reading last `parallelism + 1` results
 	for i := sendTotal - 2; i < sendTotal; i++ {
-		r := <-p.Output
-		if rint, ok := (r).(int); ok {
-			res[i] = rint
-		} else {
-			t.Errorf("received unexpected type %s", reflect.TypeOf(r))
-			return
-		}
+		res[i] = <-p.Output
 	}
 
 	isSorted := sort.SliceIsSorted(res, func(i, j int) bool {
@@ -126,17 +128,20 @@ func TestCloseNotEatingResult(t *testing.T) {
 
 // Assign benchmark results to global var so the compiler won't optimize
 // away parts of the benchmark test.
-var result interface{}
+var result int
 
 func BenchmarkNoop(b *testing.B) {
 	numThreads := runtime.NumCPU()
 
-	p := parseq.New(numThreads, noopProcessor)
+	p, err := parseq.NewWithMapper[int, int](numThreads, &NoopMapper{})
+	if err != nil {
+		panic(err)
+	}
 	go p.Start()
 
 	go func() {
 		for n := 0; n < b.N; n++ {
-			p.Input <- true
+			p.Input <- 0
 		}
 		p.Close()
 	}()
@@ -146,24 +151,30 @@ func BenchmarkNoop(b *testing.B) {
 	}
 }
 
-func noopProcessor(v interface{}) interface{} {
-	return v
+type NoopMapper struct{}
+
+func (p *NoopMapper) Map(i int) int {
+	return i
 }
 
-func processAfter(d time.Duration) parseq.ProcessFunc {
-	return func(v interface{}) interface{} {
-		time.Sleep(d)
-		return v
-	}
+type ConstantDelayMapper struct {
+	delay time.Duration
 }
 
-func processAfterRandom(r *rand.Rand) parseq.ProcessFunc {
-	var mu sync.Mutex
-	return func(v interface{}) interface{} {
-		mu.Lock()
-		rnd := r.Intn(41)
-		mu.Unlock()
-		time.Sleep(time.Duration(rnd+10) * time.Millisecond) //sleep between 10ms and 50ms
-		return v
-	}
+func (p *ConstantDelayMapper) Map(i int) int {
+	time.Sleep(time.Duration(p.delay))
+	return i
+}
+
+type RandomDelayMapper struct {
+	r  *rand.Rand
+	mu sync.Mutex
+}
+
+func (p *RandomDelayMapper) Map(i int) int {
+	p.mu.Lock()
+	rnd := p.r.Intn(41)
+	p.mu.Unlock()
+	time.Sleep(time.Duration(rnd+10) * time.Millisecond) //sleep between
+	return i
 }

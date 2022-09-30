@@ -13,7 +13,7 @@ that respects the order of input.
 
 In 99% of the cases, you read messages from a channel and process them sequentially. This is fine. Note that if the channel is unbuffered, your goroutine blocks the next message for the length of the time it takes to process each message. If processing is a lengthy operation, it doesn't matter if the channel is buffered or not, except for the initial period.
 
-```
+```go
 for msg := range channel {
 	process(msg)
 }
@@ -23,7 +23,7 @@ for msg := range channel {
 
 If this throttling is problematic, you need to parallelise. When you parallelise, results can come out of order. This can be a problem (or not):
 
-```
+```go
 outputChannel := make(chan product)
 workers := make(chan request, 3)
 
@@ -52,7 +52,7 @@ Probably not! Don't be clever. Only use it if:
 
 ## Usage
 
-```
+```go
 package main
 
 import (
@@ -62,28 +62,38 @@ import (
 	"github.com/marianogappa/parseq"
 )
 
+type DataMapper struct {
+	// you can put private fields here
+}
+
+func (p *DataMapper) Map(input int) int {
+	// access go routine-private data
+	time.Sleep(time.Duration(200) * time.Millisecond) // processing a request takes 1s
+	// process input value, and return result
+	return input
+}
+
 func main() {
-	p := parseq.New(5, process)			// 5 goroutines using the process function
+	p, err := parseq.NewWithMapper[int, int](5, &DataMapper{}) // 5 goroutines using the process function
+	if err != nil {
+		panic(err)
+	}
 
 	go p.Start()
 	go makeRequests(p)
 
-	for out := range p.Output {			// after initial 1s, requests output every ~200ms
-		fmt.Print(out.(int), ".")		// and output respects input order
+	for out := range p.Output { // after initial 1s, requests output every ~200ms
+		fmt.Print(out, ".") // and output respects input order
 	}
+	p.Close()
 }
 
-func makeRequests(p parseq.ParSeq) {
+func makeRequests(p *parseq.ParSeq[int, int]) {
 	counter := 666
 	for {
-		p.Input <- counter			// this simulates an incoming request
-		time.Sleep(200 * time.Millisecond)	// requests come every 200ms
+		p.Input <- counter                 // this simulates an incoming request
+		time.Sleep(200 * time.Millisecond) // requests come every 200ms
 		counter++
 	}
-}
-
-func process(value interface{}) interface{} {
-	time.Sleep(1 * time.Second)			// processing a request takes 1s
-	return value
 }
 ```
