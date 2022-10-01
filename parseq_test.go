@@ -150,14 +150,14 @@ func noopProcessor(v interface{}) interface{} {
 	return v
 }
 
-func processAfter(d time.Duration) func(interface{}) interface{} {
+func processAfter(d time.Duration) parseq.ProcessFunc {
 	return func(v interface{}) interface{} {
 		time.Sleep(d)
 		return v
 	}
 }
 
-func processAfterRandom(r *rand.Rand) func(interface{}) interface{} {
+func processAfterRandom(r *rand.Rand) parseq.ProcessFunc {
 	var mu sync.Mutex
 	return func(v interface{}) interface{} {
 		mu.Lock()
