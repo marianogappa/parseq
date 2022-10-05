@@ -1,6 +1,7 @@
 package parseq_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -83,8 +84,12 @@ func processAfter(d time.Duration) func(interface{}) interface{} {
 }
 
 func processAfterRandom(r *rand.Rand) func(interface{}) interface{} {
+	var mu sync.Mutex
 	return func(v interface{}) interface{} {
-		time.Sleep(time.Duration(r.Intn(41)+10) * time.Millisecond) //sleep between 10ms and 50ms
+		mu.Lock()
+		rnd := r.Intn(41)
+		mu.Unlock()
+		time.Sleep(time.Duration(rnd+10) * time.Millisecond) //sleep between 10ms and 50ms
 		return v
 	}
 }
