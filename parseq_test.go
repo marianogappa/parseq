@@ -1,6 +1,8 @@
 package parseq_test
 
 import (
+	"reflect"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -57,12 +59,14 @@ func TestOrderedOutput(t *testing.T) {
 		p.Input <- 669
 		time.Sleep(10 * time.Millisecond)
 		p.Input <- 670
+		p.Close()
 	}()
 
 	a := <-p.Output
 	b := <-p.Output
 	c := <-p.Output
 	d := <-p.Output
+	time.Sleep(10 * time.Millisecond)
 	e := <-p.Output
 
 	if a.(int) != 666 ||
@@ -72,8 +76,51 @@ func TestOrderedOutput(t *testing.T) {
 		e.(int) != 670 {
 		t.Error("output came out out of order: ", a, b, c, d, e)
 	}
+}
 
+func TestCloseNotEatingResult(t *testing.T) {
+	p := parseq.New(5, processAfter(50*time.Millisecond))
+	sendTotal := 5
+
+	go p.Start()
+	go func() {
+		for i := 666; i < 666+sendTotal; i++ {
+			p.Input <- i
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
+	res := make([]int, sendTotal)
+	for i := 0; i < sendTotal-2; i++ {
+		r := <-p.Output
+		if rint, ok := (r).(int); ok {
+			res[i] = rint
+		} else {
+			t.Errorf("received unexpected type %s", reflect.TypeOf(r))
+			return
+		}
+	}
+
+	// close first
 	p.Close()
+
+	// then try reading last `parallelism + 1` results
+	for i := sendTotal - 2; i < sendTotal; i++ {
+		r := <-p.Output
+		if rint, ok := (r).(int); ok {
+			res[i] = rint
+		} else {
+			t.Errorf("received unexpected type %s", reflect.TypeOf(r))
+			return
+		}
+	}
+
+	isSorted := sort.SliceIsSorted(res, func(i, j int) bool {
+		return res[i] < res[j]
+	})
+	if !isSorted {
+		t.Error("output is not sorted")
+	}
 }
 
 func processAfter(d time.Duration) func(interface{}) interface{} {

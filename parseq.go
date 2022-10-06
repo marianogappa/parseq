@@ -20,6 +20,7 @@ type ParSeq struct {
 	work        chan input
 	outs        chan output
 	process     func(interface{}) interface{}
+	wg          sync.WaitGroup
 }
 
 // New returns a new ParSeq. Processing doesn't begin until the Start method is called.
@@ -45,16 +46,15 @@ func (p *ParSeq) Start() {
 	go p.readRequests()
 	go p.orderResults()
 
-	var wg sync.WaitGroup
 	for i := 0; i < p.parallelism; i++ {
-		wg.Add(1)
-		go p.processRequests(&wg)
+		p.wg.Add(1)
+		go p.processRequests()
 	}
 
-	go func(wg *sync.WaitGroup) {
-		wg.Wait()
+	go func() {
+		p.wg.Wait()
 		close(p.outs)
-	}(&wg)
+	}()
 }
 
 // Close waits for all queued messages to process, and stops the ParSeq.
@@ -62,7 +62,7 @@ func (p *ParSeq) Start() {
 // to the Input channel after calling Close().
 func (p *ParSeq) Close() {
 	close(p.Input)
-	<-p.Output
+	p.wg.Wait()
 }
 
 func (p *ParSeq) readRequests() {
@@ -76,8 +76,8 @@ func (p *ParSeq) readRequests() {
 	close(p.work)
 }
 
-func (p *ParSeq) processRequests(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (p *ParSeq) processRequests() {
+	defer p.wg.Done()
 
 	for r := range p.work {
 		p.outs <- output{order: r.order, product: p.process(r.request)}
