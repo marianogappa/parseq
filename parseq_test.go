@@ -2,6 +2,7 @@ package parseq_test
 
 import (
 	"reflect"
+	"runtime"
 	"sort"
 	"sync"
 	"testing"
@@ -121,6 +122,32 @@ func TestCloseNotEatingResult(t *testing.T) {
 	if !isSorted {
 		t.Error("output is not sorted")
 	}
+}
+
+// Assign benchmark results to global var so the compiler won't optimize
+// away parts of the benchmark test.
+var result interface{}
+
+func BenchmarkNoop(b *testing.B) {
+	numThreads := runtime.NumCPU()
+
+	p := parseq.New(numThreads, noopProcessor)
+	go p.Start()
+
+	go func() {
+		for n := 0; n < b.N; n++ {
+			p.Input <- true
+		}
+		p.Close()
+	}()
+
+	for r := range p.Output {
+		result = r
+	}
+}
+
+func noopProcessor(v interface{}) interface{} {
+	return v
 }
 
 func processAfter(d time.Duration) func(interface{}) interface{} {
