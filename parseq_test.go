@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MarianoGappa/parseq"
+	"github.com/marianogappa/parseq"
 
 	"math/rand"
 )
