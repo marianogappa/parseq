@@ -3,11 +3,11 @@
 [![GoDoc](https://godoc.org/github.com/MarianoGappa/parseq?status.svg)](https://godoc.org/github.com/MarianoGappa/parseq) 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/MarianoGappa/parseq/master/LICENSE)
 
-
-
 The parseq package provides a simple interface for processing a stream in parallel,
 with configurable level of parallelism, while still outputting a sequential stream
 that respects the order of input.
+
+This package requires Go 1.18+ due to use of generics.
 
 ## WAT?
 
@@ -98,7 +98,7 @@ func makeRequests(p *parseq.ParSeq[int, int]) {
 }
 ```
 
-Sometime it is necessary to keep per-thread/go-routine state, or other data critical for mapping the input data, that must not be shared between threads. In this case, instead of providing a single mapper instance, you can provide a slice of mappers. The size of the slice must match the `parallelism` used when creating the `parseq` instance.
+Sometimes it is necessary to keep per-thread/go-routine state, or other data critical for mapping the input data, that must not be shared between threads. In this case, instead of providing a single mapper instance, you can provide a slice of mappers. The size of the slice must match the `parallelism` used when creating the `parseq` instance.
 
 ```go
 package main
@@ -114,13 +114,16 @@ type DataMapper struct {
 	// You can put private fields here.
 	// For demonstative purposes we'll use this to
 	// set an artificial delay used in the Map func.
-	delay int
+	delay time.Duration
 }
 
 func (p *DataMapper) Map(input int) int {
-	// access go routine-private data
-	time.Sleep(time.Duration(p.delay) * time.Millisecond) // processing a request takes 1s
-	// process input value, and return result
+	// Delay execution by a user-provided duration to simultate time spent
+	// on processing/mapping input data. Replace this with your own code.
+	time.Sleep(p.delay)
+
+	// Process input value, and return result.
+	// You can access go routine-private data here.
 	return input
 }
 
@@ -131,7 +134,7 @@ func main() {
 	mappers := make([]parseq.Mapper[int, int], parallelism)
 	for i := 0; i < 5; i++ {
 		mappers[i] = &DataMapper{
-			delay: i * 5,
+			delay: time.Duration(i*50) * time.Millisecond,
 		}
 	}
 

@@ -13,7 +13,7 @@ type DataMapper struct {
 
 func (p *DataMapper) Map(input int) int {
 	// access go routine-private data
-	time.Sleep(time.Duration(200) * time.Millisecond) // processing a request takes 1s
+	time.Sleep(time.Duration(200) * time.Millisecond) // processing a request takes 200ms
 	// process input value, and return result
 	return input
 }

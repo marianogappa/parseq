@@ -11,13 +11,16 @@ type DataMapper struct {
 	// You can put private fields here.
 	// For demonstative purposes we'll use this to
 	// set an artificial delay used in the Map func.
-	delay int
+	delay time.Duration
 }
 
 func (p *DataMapper) Map(input int) int {
-	// access go routine-private data
-	time.Sleep(time.Duration(p.delay) * time.Millisecond) // processing a request takes 1s
-	// process input value, and return result
+	// Delay execution by a user-provided duration to simultate time spent
+	// on processing/mapping input data. Replace this with your own code.
+	time.Sleep(p.delay)
+
+	// Process input value, and return result.
+	// You can access go routine-private data here.
 	return input
 }
 
@@ -28,7 +31,7 @@ func main() {
 	mappers := make([]parseq.Mapper[int, int], parallelism)
 	for i := 0; i < 5; i++ {
 		mappers[i] = &DataMapper{
-			delay: i * 5,
+			delay: time.Duration(i*50) * time.Millisecond,
 		}
 	}
 
