@@ -4,7 +4,7 @@
 package parseq
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 )
 
@@ -35,9 +35,10 @@ type MapperGenerator[InType any, OutType any] interface {
 // ParSeq is concurrency-safe; multiple ParSeqs can run in parallel.
 // `parallelism` determines how many goroutines read from the Input channel, and each
 // of the goroutines uses the `process` function to process the inputs.
-func NewWithMapperSlice[InType any, OutType any](parallelism int, mappers []Mapper[InType, OutType]) (*ParSeq[InType, OutType], error) {
-	if len(mappers) != parallelism {
-		return nil, fmt.Errorf("length of mappers slice (%d) must equal to parallelism (%d)", len(mappers), parallelism)
+func NewWithMapperSlice[InType any, OutType any](mappers []Mapper[InType, OutType]) (*ParSeq[InType, OutType], error) {
+	parallelism := len(mappers)
+	if len(mappers) == 0 {
+		return nil, errors.New("length of mappers slice can't be 0")
 	}
 
 	work := make([]chan InType, parallelism)
@@ -67,7 +68,7 @@ func NewWithMapperGenerator[InType any, OutType any](parallelism int, mapperGene
 			return nil, err
 		}
 	}
-	return NewWithMapperSlice(parallelism, mappers)
+	return NewWithMapperSlice(mappers)
 }
 
 func NewWithMapper[InType any, OutType any](parallelism int, mapper Mapper[InType, OutType]) (*ParSeq[InType, OutType], error) {
@@ -75,7 +76,7 @@ func NewWithMapper[InType any, OutType any](parallelism int, mapper Mapper[InTyp
 	for i := 0; i < parallelism; i++ {
 		mappers[i] = mapper
 	}
-	return NewWithMapperSlice(parallelism, mappers)
+	return NewWithMapperSlice(mappers)
 }
 
 // Start begins consuming the Input channel and producing to the Output channel.
