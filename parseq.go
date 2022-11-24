@@ -27,10 +27,6 @@ type Mapper[InType any, OutType any] interface {
 	Map(InType) OutType
 }
 
-type MapperGenerator[InType any, OutType any] interface {
-	GenerateMapper(int) (Mapper[InType, OutType], error)
-}
-
 // New returns a new ParSeq. Processing doesn't begin until the Start method is called.
 // ParSeq is concurrency-safe; multiple ParSeqs can run in parallel.
 // `parallelism` determines how many goroutines read from the Input channel, and each
@@ -57,18 +53,6 @@ func NewWithMapperSlice[InType any, OutType any](mappers []Mapper[InType, OutTyp
 		outs:        outs,
 		process:     mappers,
 	}, nil
-}
-
-func NewWithMapperGenerator[InType any, OutType any](parallelism int, mapperGenerator MapperGenerator[InType, OutType]) (*ParSeq[InType, OutType], error) {
-	var err error
-	mappers := make([]Mapper[InType, OutType], parallelism)
-	for i := 0; i < parallelism; i++ {
-		mappers[i], err = mapperGenerator.GenerateMapper(i)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return NewWithMapperSlice(mappers)
 }
 
 func NewWithMapper[InType any, OutType any](parallelism int, mapper Mapper[InType, OutType]) (*ParSeq[InType, OutType], error) {
