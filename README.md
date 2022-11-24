@@ -138,7 +138,7 @@ func main() {
 		}
 	}
 
-	p, err := parseq.NewWithMapperSlice(parallelism, mappers) // 5 goroutines using the process function
+	p, err := parseq.NewWithMapperSlice(mappers) // 5 goroutines using the process function
 	if err != nil {
 		panic(err)
 	}
